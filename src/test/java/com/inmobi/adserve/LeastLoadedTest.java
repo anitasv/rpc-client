@@ -230,7 +230,7 @@ public class LeastLoadedTest {
     }
 
     @Test
-    public void testLeastLoadedBehaviour() throws ExecutionException, InterruptedException {
+    public void testLeastLoadedBehaviourForPoissonProcess() throws ExecutionException, InterruptedException {
         Object req = new Object();
 
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
@@ -303,7 +303,7 @@ public class LeastLoadedTest {
         System.err.println(counter3);
 
         assertTrue(counter1.get() > counter2.get(), "Backend 1 must process more requests than backend 2");
-        assertTrue(counter3.get() > counter3.get(), "Backend 2 must process more requests than backend 3");
+        assertTrue(counter2.get() > counter3.get(), "Backend 2 must process more requests than backend 3");
         executor.shutdown();
         executorClient.shutdown();
    }
