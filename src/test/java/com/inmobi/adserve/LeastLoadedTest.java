@@ -7,17 +7,15 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import org.testng.annotations.Test;
 
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Phaser;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
@@ -242,9 +240,9 @@ public class LeastLoadedTest {
         AtomicInteger counter2 = new AtomicInteger(0);
         AtomicInteger counter3 = new AtomicInteger(0);
 
-        long delay1 = 100;
-        long delay2 = 200;
-        long delay3 = 300;
+        long delay1 = 10;
+        long delay2 = 20;
+        long delay3 = 30;
 
 
         RpcService<Object, Object> backend1 = new RpcService<>(object -> {
@@ -278,9 +276,15 @@ public class LeastLoadedTest {
 
         assertTrue(leastLoaded.isHealthy());
 
-        int numRequests = 1000;
-        double rate = (1.0 / delay1) + (1.0 / delay2) + (1.0 / delay3);
-        long attempt = (long) Math.floor(1.0 / rate);
+        double duration = TimeUnit.SECONDS.toMillis(1);
+        double rate = (duration / delay1) + (duration / delay2) + (duration / delay3);
+        int numRequests = (int) Math.floor(rate);
+
+        long[] arrivalRates = new long[numRequests];
+        ThreadLocalRandom current = ThreadLocalRandom.current();
+        for (int i = 0; i < numRequests; i++) {
+            arrivalRates[i] = current.nextLong(TimeUnit.SECONDS.toNanos(1));
+        }
 
         CountDownLatch countDownLatch = new CountDownLatch(numRequests);
 
@@ -288,13 +292,18 @@ public class LeastLoadedTest {
             executor.schedule(() -> {
                 leastLoaded.apply(new Object())
                         .addListener(countDownLatch::countDown, MoreExecutors.directExecutor());
-            }, i * attempt, TimeUnit.MILLISECONDS);
+            }, arrivalRates[i], TimeUnit.NANOSECONDS);
         }
         countDownLatch.await();
+        System.err.println(duration / delay1);
+        System.err.println(duration / delay2);
+        System.err.println(duration / delay3);
         System.err.println(counter1);
         System.err.println(counter2);
         System.err.println(counter3);
 
+        assertTrue(counter1.get() > counter2.get(), "Backend 1 must process more requests than backend 2");
+        assertTrue(counter3.get() > counter3.get(), "Backend 2 must process more requests than backend 3");
         executor.shutdown();
         executorClient.shutdown();
    }
