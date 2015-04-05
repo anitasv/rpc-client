@@ -224,10 +224,7 @@ public class LeastLoadedTest {
     public void testLeastLoadedBehaviourForPoissonProcess() throws ExecutionException, InterruptedException {
         Object req = new Object();
 
-        ScheduledExecutorService executor1 = Executors.newScheduledThreadPool(1);
-        ScheduledExecutorService executor2 = Executors.newScheduledThreadPool(1);
-        ScheduledExecutorService executor3 = Executors.newScheduledThreadPool(1);
-        ScheduledExecutorService executorClient = Executors.newScheduledThreadPool(1);
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
 
         AtomicInteger counter1 = new AtomicInteger(0);
         AtomicInteger counter2 = new AtomicInteger(0);
@@ -240,7 +237,7 @@ public class LeastLoadedTest {
 
         RpcService<Object, Object> backend1 = new FunctionalRpcService<>(object -> {
             SettableFuture<Object> ret = SettableFuture.create();
-            executor1.schedule(() -> {
+            scheduler.schedule(() -> {
                 ret.set(new Object());
                 counter1.incrementAndGet();
             }, delay1, TimeUnit.MILLISECONDS);
@@ -248,7 +245,7 @@ public class LeastLoadedTest {
         }, () -> true);
         RpcService<Object, Object> backend2 = new FunctionalRpcService<>(object -> {
             SettableFuture<Object> ret = SettableFuture.create();
-            executor2.schedule(() -> {
+            scheduler.schedule(() -> {
                 ret.set(new Object());
                 counter2.incrementAndGet();
             }, delay2, TimeUnit.MILLISECONDS);
@@ -256,7 +253,7 @@ public class LeastLoadedTest {
         }, () -> true);
         RpcService<Object, Object> backend3 = new FunctionalRpcService<>(object -> {
             SettableFuture<Object> ret = SettableFuture.create();
-            executor3.schedule(() -> {
+            scheduler.schedule(() -> {
                 ret.set(new Object());
                 counter3.incrementAndGet();
             }, delay3, TimeUnit.MILLISECONDS);
@@ -283,7 +280,7 @@ public class LeastLoadedTest {
 
         Arrays.sort(arrivalRates);
         for (int i = 0; i < numRequests; i++) {
-            executorClient.schedule(() -> {
+            scheduler.schedule(() -> {
                 leastLoaded.apply(new Object())
                         .addListener(countDownLatch::countDown, MoreExecutors.directExecutor());
             }, arrivalRates[i], TimeUnit.NANOSECONDS);
@@ -298,9 +295,6 @@ public class LeastLoadedTest {
 
         assertTrue(counter1.get() > counter2.get(), "Backend 1 must process more requests than backend 2");
         assertTrue(counter2.get() > counter3.get(), "Backend 2 must process more requests than backend 3");
-        executor1.shutdown();
-        executor2.shutdown();
-        executor3.shutdown();
-        executorClient.shutdown();
+        scheduler.shutdown();
    }
 }
