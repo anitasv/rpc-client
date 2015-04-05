@@ -9,7 +9,16 @@ First write an implementation for RpcService, tie one instance per backend host.
 to the same host is expected to be managed inside the client implementation of RpcService. LeastLoaded
 is one of the mechanisms provided right now to load balance across multiple RpcServices.
 
-The expectation is we can make meta balancing like:
+For example:
+```java
+  List<HostPort> servers = config.getServiceBackends();
+  List<RpcService<GeoRequest, GeoResponse>> backends = Lists.transform(servers, GeoThriftRpcService::new);
+  ExecutorService executor = Executors.newCachedThreadPool();
+  
+  RpcService uberBackend = new LeastLoaded(backends, executor);
+```
+
+LeastLoaded and Preferred are RpcServices by themselves, so that we can make meta balancing like:
 ```java
 Final = Preferred(Backend1, Backend2);
 Backend1 = LeastLoaded(Primary)
