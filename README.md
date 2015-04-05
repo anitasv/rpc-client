@@ -57,13 +57,14 @@ least loaded over a bunch of round robin boxes.
 ```java
   switch1 = RoundRobin(box1, box2, box3);
   switch2 = RoundRobin(box4, box5, box6);
-  switch3 = RoundRobin(box7, box8);
+  switch3 = RoundRobin(box7, box8, box9);
   
   uberBackend = LeastLoaded(switch1, switch2, switch3)
 ```
 
 Sometimes you may even have different class of switches, and or some switches already allocates part
-of its load to other servers which is unrelated to this backend that even this won't work as well.
+of its load to other servers which is unrelated to this backend that even this won't work as well. Or
+some switch has lesser servers than another.
 
 We are also thinking about how to do this whole management automatically, and reconfigure automatically
 as and when the system detects each node can do more or less than it originally promised. But we are
