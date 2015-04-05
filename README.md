@@ -12,7 +12,8 @@ is one of the mechanisms provided right now to load balance across multiple RpcS
 For example:
 ```java
   List<HostPort> servers = config.getServiceBackends();
-  List<RpcService<GeoRequest, GeoResponse>> backends = Lists.transform(servers, GeoThriftRpcService::new);
+  List<RpcService<GeoRequest, GeoResponse>> backends = 
+      Lists.transform(servers, GeoThriftRpcService::new);
   ExecutorService executor = Executors.newCachedThreadPool();
   
   RpcService uberBackend = new LeastLoaded(backends, executor);
