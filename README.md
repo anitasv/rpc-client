@@ -11,9 +11,9 @@ is one of the mechanisms provided right now to load balance across multiple RpcS
 
 For example:
 ```java
-  List<HostPort> servers = config.getServiceBackends();
-  List<RpcService<GeoRequest, GeoResponse>> backends = 
-      Lists.transform(servers, GeoThriftRpcService::new);
+  ImmutableList<HostPort> servers = config.getServiceBackends();
+  Immutable<RpcService<GeoRequest, GeoResponse>> backends = 
+      ImmutableList.copyOf(Lists.transform(servers, GeoThriftRpcService::new));
   ExecutorService executor = Executors.newCachedThreadPool();
   
   RpcService<GeoRequest, GeoResponse> uberBackend = new LeastLoaded(backends, executor);
