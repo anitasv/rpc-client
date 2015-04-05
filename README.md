@@ -12,7 +12,7 @@ is one of the mechanisms provided right now to load balance across multiple RpcS
 For example:
 ```java
   ImmutableList<HostPort> servers = config.getServiceBackends();
-  Immutable<RpcService<GeoRequest, GeoResponse>> backends = 
+  ImmutableList<RpcService<GeoRequest, GeoResponse>> backends = 
       ImmutableList.copyOf(Lists.transform(servers, GeoThriftRpcService::new));
   ExecutorService executor = Executors.newCachedThreadPool();
   
