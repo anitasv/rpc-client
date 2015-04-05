@@ -11,21 +11,10 @@ import java.util.Arrays;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.inmobi.adserve.RpcTestUtils.*;
 import static org.testng.Assert.*;
 
 public class LeastLoadedTest {
-
-    public static <Req, Resp> RpcService<Req, Resp> immediateSuccess(Resp value) {
-        return new FunctionalRpcService<>(req -> Futures.immediateFuture(value), () -> true);
-    }
-
-    public static <Req, Resp> RpcService<Req, Resp> immediateFail() {
-        return new FunctionalRpcService<>(req -> Futures.immediateCancelledFuture(), () -> true);
-    }
-
-    public static <Req, Resp> RpcService<Req, Resp> custom(ListenableFuture<Resp> future) {
-        return new FunctionalRpcService<>(req -> future, () -> true);
-    }
 
     @Test
     public void testOneBackendSuccessBlocking() throws ExecutionException, InterruptedException {
@@ -102,7 +91,7 @@ public class LeastLoadedTest {
     public void testOneBackendServerDelayedCancel() throws ExecutionException, InterruptedException {
         Object req = new Object();
 
-        SettableFuture serverFuture = SettableFuture.create();
+        SettableFuture<Object> serverFuture = SettableFuture.create();
         RpcService<Object, Object> healthy = custom(serverFuture);
 
         LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
@@ -124,7 +113,7 @@ public class LeastLoadedTest {
     public void testOneBackendServerTimedCancel() throws ExecutionException, InterruptedException {
         Object req = new Object();
 
-        SettableFuture serverFuture = SettableFuture.create();
+        SettableFuture<Object> serverFuture = SettableFuture.create();
         RpcService<Object, Object> healthy = custom(serverFuture);
 
         LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
@@ -151,7 +140,7 @@ public class LeastLoadedTest {
     public void testOneBackendClientCancel() throws ExecutionException, InterruptedException {
         Object req = new Object();
 
-        SettableFuture serverFuture = SettableFuture.create();
+        SettableFuture<Object> serverFuture = SettableFuture.create();
         RpcService<Object, Object> healthy = custom(serverFuture);
 
         LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),

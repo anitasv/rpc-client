@@ -15,5 +15,12 @@ import java.util.function.Function;
  */
 public interface RpcService<Req, Resp> extends Function<Req, ListenableFuture<Resp>> {
 
+    /**
+     * Returns the health of the system, by default none of the balancers will cache
+     * this result. So it will be responsibility of the final implementation to cache
+     * if needed. It can also be wrapped around a HealthCached RpcService if you
+     * would like.
+     * @return true if healthy, false otherwise.
+     */
     boolean isHealthy();
 }
