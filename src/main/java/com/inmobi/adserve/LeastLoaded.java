@@ -25,7 +25,7 @@ import java.util.function.Function;
  * @param <Req> Request object type.
  * @param <Resp> Response object type.
  */
-public class LeastLoaded<Req, Resp> implements Function<Req, ListenableFuture<Resp>> {
+public class LeastLoaded<Req, Resp> implements RpcService<Req, Resp> {
 
     private final Executor executor;
 
@@ -42,7 +42,7 @@ public class LeastLoaded<Req, Resp> implements Function<Req, ListenableFuture<Re
 
         public ListenableFuture<Resp> call(final Req req) {
             outboundRequests.incrementAndGet();
-            final ListenableFuture<Resp> serverFuture = service.getService().apply(req);
+            final ListenableFuture<Resp> serverFuture = service.apply(req);
 
             final SettableFuture<Resp> clientFuture = SettableFuture.create();
 
@@ -74,7 +74,7 @@ public class LeastLoaded<Req, Resp> implements Function<Req, ListenableFuture<Re
         }
 
         public boolean isHealthy() {
-            return service.getHealthInspector().get();
+            return service.isHealthy();
         }
     }
 
@@ -89,6 +89,7 @@ public class LeastLoaded<Req, Resp> implements Function<Req, ListenableFuture<Re
         this.loopCounter = new AtomicInteger(ThreadLocalRandom.current().nextInt(backends.size()));
     }
 
+    @Override
     public ListenableFuture<Resp> apply(Req req) {
         RpcWrapper host = select();
         if (host != null) {
@@ -132,9 +133,5 @@ public class LeastLoaded<Req, Resp> implements Function<Req, ListenableFuture<Re
         loopCounter.set(nextLoopCounter);
 
         return ret;
-    }
-
-    public RpcService<Req, Resp> asService() {
-        return new RpcService<Req, Resp>(this, this::isHealthy);
     }
 }

@@ -7,33 +7,24 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import org.testng.annotations.Test;
 
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.fail;
+import static org.testng.Assert.*;
 
 public class LeastLoadedTest {
 
-
     public static <Req, Resp> RpcService<Req, Resp> immediateSuccess(Resp value) {
-        return new RpcService<>(req -> Futures.immediateFuture(value), () -> true);
+        return new FunctionalRpcService<>(req -> Futures.immediateFuture(value), () -> true);
     }
 
     public static <Req, Resp> RpcService<Req, Resp> immediateFail() {
-        return new RpcService<>(req -> Futures.immediateCancelledFuture(), () -> true);
+        return new FunctionalRpcService<>(req -> Futures.immediateCancelledFuture(), () -> true);
     }
 
-    public static <Req, Resp> RpcService<Req, Resp> custom(ListenableFuture future) {
-        return new RpcService<>(req -> future, () -> true);
+    public static <Req, Resp> RpcService<Req, Resp> custom(ListenableFuture<Resp> future) {
+        return new FunctionalRpcService<>(req -> future, () -> true);
     }
 
     @Test
@@ -233,7 +224,9 @@ public class LeastLoadedTest {
     public void testLeastLoadedBehaviourForPoissonProcess() throws ExecutionException, InterruptedException {
         Object req = new Object();
 
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(4);
+        ScheduledExecutorService executor1 = Executors.newScheduledThreadPool(1);
+        ScheduledExecutorService executor2 = Executors.newScheduledThreadPool(1);
+        ScheduledExecutorService executor3 = Executors.newScheduledThreadPool(1);
         ScheduledExecutorService executorClient = Executors.newScheduledThreadPool(1);
 
         AtomicInteger counter1 = new AtomicInteger(0);
@@ -245,25 +238,25 @@ public class LeastLoadedTest {
         long delay3 = 30;
 
 
-        RpcService<Object, Object> backend1 = new RpcService<>(object -> {
+        RpcService<Object, Object> backend1 = new FunctionalRpcService<>(object -> {
             SettableFuture<Object> ret = SettableFuture.create();
-            executor.schedule(() -> {
+            executor1.schedule(() -> {
                 ret.set(new Object());
                 counter1.incrementAndGet();
             }, delay1, TimeUnit.MILLISECONDS);
             return ret;
         }, () -> true);
-        RpcService<Object, Object> backend2 = new RpcService<>(object -> {
+        RpcService<Object, Object> backend2 = new FunctionalRpcService<>(object -> {
             SettableFuture<Object> ret = SettableFuture.create();
-            executor.schedule(() -> {
+            executor2.schedule(() -> {
                 ret.set(new Object());
                 counter2.incrementAndGet();
             }, delay2, TimeUnit.MILLISECONDS);
             return ret;
         }, () -> true);
-        RpcService<Object, Object> backend3 = new RpcService<>(object -> {
+        RpcService<Object, Object> backend3 = new FunctionalRpcService<>(object -> {
             SettableFuture<Object> ret = SettableFuture.create();
-            executor.schedule(() -> {
+            executor3.schedule(() -> {
                 ret.set(new Object());
                 counter3.incrementAndGet();
             }, delay3, TimeUnit.MILLISECONDS);
@@ -288,8 +281,9 @@ public class LeastLoadedTest {
 
         CountDownLatch countDownLatch = new CountDownLatch(numRequests);
 
+        Arrays.sort(arrivalRates);
         for (int i = 0; i < numRequests; i++) {
-            executor.schedule(() -> {
+            executorClient.schedule(() -> {
                 leastLoaded.apply(new Object())
                         .addListener(countDownLatch::countDown, MoreExecutors.directExecutor());
             }, arrivalRates[i], TimeUnit.NANOSECONDS);
@@ -304,7 +298,9 @@ public class LeastLoadedTest {
 
         assertTrue(counter1.get() > counter2.get(), "Backend 1 must process more requests than backend 2");
         assertTrue(counter2.get() > counter3.get(), "Backend 2 must process more requests than backend 3");
-        executor.shutdown();
+        executor1.shutdown();
+        executor2.shutdown();
+        executor3.shutdown();
         executorClient.shutdown();
    }
 }
