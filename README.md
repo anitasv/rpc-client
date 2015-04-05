@@ -10,11 +10,13 @@ to the same host is expected to be managed inside the client implementation of R
 is one of the mechanisms provided right now to load balance across multiple RpcServices.
 
 The expectation is we can make meta balancing like:
+```java
 Final = Preferred(Backend1, Backend2);
-Backend1= LeastLoaded(Primary)
-Backend2= LeastLoaded(Secondary)
+Backend1 = LeastLoaded(Primary)
+Backend2 = LeastLoaded(Secondary)
 Primary = List of 10-servers
-Secondary = List of 100 servers.
+Secondary = List of 900 servers.
+```
 
 So that majority of the time we will loadbalance across some 10 servers, and if all of them goes
 unavailable then move to list of secondary servers. The reason for this split is to be able to
