@@ -21,11 +21,11 @@ For example:
 
 LeastLoaded and Preferred are RpcServices by themselves, so that we can make meta balancing like:
 ```java
-Final = Preferred(Backend1, Backend2);
-Backend1 = LeastLoaded(Primary)
-Backend2 = LeastLoaded(Secondary)
 Primary = List of 10-servers
 Secondary = List of 900 servers.
+Backend1 = LeastLoaded(Primary)
+Backend2 = LeastLoaded(Secondary)
+Final = Preferred(Backend1, Backend2);
 ```
 
 So that majority of the time we will loadbalance across some 10 servers, and if all of them goes
@@ -54,6 +54,19 @@ Sometimes it may be necessary to do at a different level if the topology wants t
 request go to a different switch, or even a different rack for whatever reason. Sometimes least loaded
 may need to be counted at a switch level, and not a host level. In which case you may meta balance
 least loaded over a bunch of round robin boxes. 
+```java
+  switch1 = RoundRobin(box1, box2, box3);
+  switch2 = RoundRobin(box4, box5, box6);
+  switch3 = RoundRobin(box7, box8);
+  
+  uberBackend = LeastLoaded(switch1, switch2, switch3)
+```
 
+Sometimes you may even have different class of switches, and or some switches already allocates part
+of its load to other servers which is unrelated to this backend that even this won't work as well.
 
+We are also thinking about how to do this whole management automatically, and reconfigure automatically
+as and when the system detects each node can do more or less than it originally promised. But we are
+leaving this topic out of scope of this library. And assuming the topology graph is computed by an
+external program and fed into this system.
 
