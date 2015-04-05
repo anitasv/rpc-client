@@ -16,7 +16,7 @@ For example:
       Lists.transform(servers, GeoThriftRpcService::new);
   ExecutorService executor = Executors.newCachedThreadPool();
   
-  RpcService uberBackend = new LeastLoaded(backends, executor);
+  RpcService<GeoRequest, GeoResponse> uberBackend = new LeastLoaded(backends, executor);
 ```
 
 LeastLoaded and Preferred are RpcServices by themselves, so that we can make meta balancing like:
