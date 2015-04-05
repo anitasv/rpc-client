@@ -31,3 +31,29 @@ Secondary = List of 900 servers.
 So that majority of the time we will loadbalance across some 10 servers, and if all of them goes
 unavailable then move to list of secondary servers. The reason for this split is to be able to
 manage number of overall connections to reduce pressure over the network.
+
+Least loaded is especially useful if you have multiple backends with different latency characteristics,
+but similar capacity. For example if you have three backends with 10ms, 20ms, and 30ms latency for
+each. Then you would expect first server to handle around 100 qps, second 50 qps, and third 33 qps. 
+Giving an overall 183 qps. One of the test in LeastLoadedTest checks precisely this, but gets an 
+overall 180qps, with 78-62-43 split instead of the perfect 100-50-33 on a poisson distributed input. 
+
+But in reality individual capacity of each server might differ because of the number of CPUs in 
+each machine. In which case you would need a Weighted Least Loaded machinery. One way to do this
+would be to use small integer weights, and add each backend multiple times. But this will cause 
+some other optimizations to go wrong. To circumvent this problem, we need direct Weighted Least Loaded
+class. 
+
+If you have servers which return responses faster when in failure, least loaded itself may not
+be the best strategy. You may want to consider Round Robin. Also sometimes Weighted Round Robin.
+
+Some of these may also support Hedging feature in which, if a request takes more than a specified
+time (usually around 95 percentile), it is retried with another server. This is not possible to
+be implemented at a higher level because the abstraction looses which host pair we were talking to.
+Sometimes it may be necessary to do at a different level if the topology wants to force a hedged
+request go to a different switch, or even a different rack for whatever reason. Sometimes least loaded
+may need to be counted at a switch level, and not a host level. In which case you may meta balance
+least loaded over a bunch of round robin boxes. 
+
+
+
