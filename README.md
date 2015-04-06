@@ -36,7 +36,7 @@ Least loaded is especially useful if you have multiple backends with different l
 but similar capacity. For example if you have three backends with 10ms, 20ms, and 30ms latency for
 each. Then you would expect first server to handle around 100 qps, second 50 qps, and third 33 qps. 
 Giving an overall 183 qps. One of the test in LeastLoadedTest checks precisely this, but gets an 
-overall 180qps, with 78-62-43 split instead of the perfect 100-50-33 on a poisson distributed input. 
+overall 147 qps, with 78-62-43 split instead of the perfect 100-50-33 on a poisson distributed input. 
 
 But in reality individual capacity of each server might differ because of the number of CPUs in 
 each machine. In which case you would need a Weighted Least Loaded machinery. One way to do this
