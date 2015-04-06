@@ -3,6 +3,7 @@ package com.inmobi.adserve;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -11,7 +12,6 @@ import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 /**
  * Makes a composite RpcService out of a list of RpcService(s). When a call is made, it
@@ -83,8 +83,7 @@ public class LeastLoaded<Req, Resp> implements RpcService<Req, Resp> {
     public LeastLoaded(List<RpcService<Req, Resp>> backends,
                        Executor executor) {
         Preconditions.checkArgument(!backends.isEmpty(), "At least one backend must be present");
-        this.backends = ImmutableList.<RpcWrapper>builder()
-                .addAll(Iterables.transform(backends, RpcWrapper::new)).build();
+        this.backends = ImmutableList.copyOf(Lists.transform(backends, RpcWrapper::new));
         this.executor = executor;
         this.loopCounter = new AtomicInteger(ThreadLocalRandom.current().nextInt(backends.size()));
     }

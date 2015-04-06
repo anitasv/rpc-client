@@ -1,5 +1,6 @@
 package com.inmobi.adserve;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -211,46 +212,18 @@ public class LeastLoadedTest {
 
     @Test
     public void testLeastLoadedBehaviourForPoissonProcess() throws ExecutionException, InterruptedException {
-        Object req = new Object();
-
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(4);
-
-        AtomicInteger counter1 = new AtomicInteger(0);
-        AtomicInteger counter2 = new AtomicInteger(0);
-        AtomicInteger counter3 = new AtomicInteger(0);
 
         long delay1 = 10;
         long delay2 = 20;
         long delay3 = 30;
 
+        FakeBackend backend1 = new FakeBackend(scheduler, delay1);
+        FakeBackend backend2 = new FakeBackend(scheduler, delay2);
+        FakeBackend backend3 = new FakeBackend(scheduler, delay3);
 
-        RpcService<Object, Object> backend1 = new FunctionalRpcService<>(object -> {
-            SettableFuture<Object> ret = SettableFuture.create();
-            scheduler.schedule(() -> {
-                ret.set(new Object());
-                counter1.incrementAndGet();
-            }, delay1, TimeUnit.MILLISECONDS);
-            return ret;
-        }, () -> true);
-        RpcService<Object, Object> backend2 = new FunctionalRpcService<>(object -> {
-            SettableFuture<Object> ret = SettableFuture.create();
-            scheduler.schedule(() -> {
-                ret.set(new Object());
-                counter2.incrementAndGet();
-            }, delay2, TimeUnit.MILLISECONDS);
-            return ret;
-        }, () -> true);
-        RpcService<Object, Object> backend3 = new FunctionalRpcService<>(object -> {
-            SettableFuture<Object> ret = SettableFuture.create();
-            scheduler.schedule(() -> {
-                ret.set(new Object());
-                counter3.incrementAndGet();
-            }, delay3, TimeUnit.MILLISECONDS);
-            return ret;
-        }, () -> true);
-
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(
-                ImmutableList.of(backend1, backend2, backend3),
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<Object, Object>(
+                ImmutableList.<RpcService<Object, Object>>of(backend1, backend2, backend3),
                 MoreExecutors.directExecutor());
 
         assertTrue(leastLoaded.isHealthy());
@@ -261,6 +234,7 @@ public class LeastLoadedTest {
 
         long[] arrivalRates = new long[numRequests];
         ThreadLocalRandom current = ThreadLocalRandom.current();
+
         for (int i = 0; i < numRequests; i++) {
             arrivalRates[i] = current.nextLong(TimeUnit.SECONDS.toNanos(1));
         }
@@ -268,6 +242,8 @@ public class LeastLoadedTest {
         CountDownLatch countDownLatch = new CountDownLatch(numRequests);
 
         Arrays.sort(arrivalRates);
+
+        Stopwatch watch = Stopwatch.createStarted();
         for (int i = 0; i < numRequests; i++) {
             scheduler.schedule(() -> {
                 leastLoaded.apply(new Object())
@@ -275,15 +251,65 @@ public class LeastLoadedTest {
             }, arrivalRates[i], TimeUnit.NANOSECONDS);
         }
         countDownLatch.await();
+        System.err.println("Through put: " + numRequests * 1e9 / watch.elapsed(TimeUnit.NANOSECONDS));
+
         System.err.println(duration / delay1);
         System.err.println(duration / delay2);
         System.err.println(duration / delay3);
-        System.err.println(counter1);
-        System.err.println(counter2);
-        System.err.println(counter3);
+        System.err.println(backend1.getNumRequests());
+        System.err.println(backend2.getNumRequests());
+        System.err.println(backend3.getNumRequests());
 
-        assertTrue(counter1.get() > counter2.get(), "Backend 1 must process more requests than backend 2");
-        assertTrue(counter2.get() > counter3.get(), "Backend 2 must process more requests than backend 3");
+        assertTrue(backend1.getNumRequests() > backend2.getNumRequests(), "Backend 1 must process more requests than backend 2");
+        assertTrue(backend2.getNumRequests() > backend3.getNumRequests(), "Backend 2 must process more requests than backend 3");
         scheduler.shutdown();
    }
+
+    @Test(expectedExceptions = ExecutionException.class)
+    public void testFailedBehaviour() throws ExecutionException, InterruptedException {
+
+        RpcService<Object, Object> backend1 = custom(Futures.immediateFailedFuture(new RpcException("Test")));
+
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1),
+                MoreExecutors.directExecutor());
+
+        leastLoaded.apply(new Object()).get();
+        fail();
+    }
+
+    @Test(expectedExceptions = ExecutionException.class)
+    public void testFailedBehaviourAsync() throws ExecutionException, InterruptedException {
+
+        RpcService<Object, Object> backend1 = custom(Futures.immediateFailedFuture(new RpcException("Test")));
+
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1),
+                MoreExecutors.directExecutor());
+
+        ListenableFuture<Object> future = leastLoaded.apply(new Object());
+        Semaphore wait = new Semaphore(0);
+        future.addListener(wait::release, MoreExecutors.directExecutor());
+        wait.acquire();
+        assertTrue(future.isDone());
+        future.get();
+        fail();
+    }
+
+    @Test
+    public void testFailedLeastLoadedBehaviour() throws ExecutionException, InterruptedException {
+
+        RpcService<Object, Object> backend1 = custom(Futures.immediateFailedFuture(new RpcException("Test")));
+        Object resp = new Object();
+        RpcService<Object, Object> backend2 = immediateSuccess(resp);
+
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1, backend2),
+                MoreExecutors.directExecutor());
+
+        while (true) {
+            try {
+                assertEquals(leastLoaded.apply(new Object()).get(), resp, "We should eventually get right response");
+                return;
+            } catch (ExecutionException ignored) {
+            }
+        }
+    }
 }
