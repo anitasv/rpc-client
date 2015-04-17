@@ -127,9 +127,7 @@ public class LeastLoadedTest {
         future.addListener(wait::release, MoreExecutors.directExecutor());
 
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-        scheduledExecutorService.schedule(() -> {
-            serverFuture.cancel(true);
-        }, 1, TimeUnit.SECONDS);
+        scheduledExecutorService.schedule(() -> serverFuture.cancel(true), 1, TimeUnit.SECONDS);
 
         wait.acquire();
         assertTrue(leastLoaded.isHealthy());
@@ -163,7 +161,7 @@ public class LeastLoadedTest {
     public void testOneBackendClientDelayedCancel() throws ExecutionException, InterruptedException {
         Object req = new Object();
 
-        SettableFuture serverFuture = SettableFuture.create();
+        SettableFuture<Object> serverFuture = SettableFuture.create();
         RpcService<Object, Object> healthy = custom(serverFuture);
 
         LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
@@ -174,9 +172,7 @@ public class LeastLoadedTest {
         ListenableFuture<Object> future = leastLoaded.apply(req);
 
         ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-        scheduledExecutorService.schedule(() -> {
-            future.cancel(true);
-        }, 1, TimeUnit.SECONDS);
+        scheduledExecutorService.schedule(() -> future.cancel(true), 1, TimeUnit.SECONDS);
 
 
         serverFuture.addListener(wait::release, MoreExecutors.directExecutor());
@@ -222,7 +218,7 @@ public class LeastLoadedTest {
         FakeBackend backend2 = new FakeBackend(scheduler, delay2);
         FakeBackend backend3 = new FakeBackend(scheduler, delay3);
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<Object, Object>(
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(
                 ImmutableList.<RpcService<Object, Object>>of(backend1, backend2, backend3),
                 MoreExecutors.directExecutor());
 
@@ -245,10 +241,9 @@ public class LeastLoadedTest {
 
         Stopwatch watch = Stopwatch.createStarted();
         for (int i = 0; i < numRequests; i++) {
-            scheduler.schedule(() -> {
-                leastLoaded.apply(new Object())
-                        .addListener(countDownLatch::countDown, MoreExecutors.directExecutor());
-            }, arrivalRates[i], TimeUnit.NANOSECONDS);
+            scheduler.schedule(() -> leastLoaded.apply(new Object())
+                    .addListener(countDownLatch::countDown, MoreExecutors.directExecutor()),
+                    arrivalRates[i], TimeUnit.NANOSECONDS);
         }
         countDownLatch.await();
 
