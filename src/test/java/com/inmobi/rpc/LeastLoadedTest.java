@@ -240,13 +240,15 @@ public class LeastLoadedTest {
         countDownLatch.await();
 
         double achievedRate = numRequests * 1e9 / watch.elapsed(TimeUnit.NANOSECONDS);
-        System.err.println("LeastLoadedRR: Throughput (Expected = " + rate + " ) (Actual = " + achievedRate + ")" );
-        System.err.println("Backend (1: " + backend1.getNumRequests() + ") " +
-                "(2: " + backend2.getNumRequests() + ")" +
-                "(3: " + backend3.getNumRequests() + ")");
+        System.err.println("LeastLoadedRR: Throughput (Expected = " + rate + ") (Actual = " + achievedRate + ")" );
+        System.err.println("Backend (1: " + backend1.getNumRequests() + ")" +
+                " (2: " + backend2.getNumRequests() + ")" +
+                " (3: " + backend3.getNumRequests() + ")");
 
-        assertTrue(backend1.getNumRequests() > backend2.getNumRequests(), "Backend 1 must process more requests than backend 2");
-        assertTrue(backend2.getNumRequests() > backend3.getNumRequests(), "Backend 2 must process more requests than backend 3");
+        assertTrue(backend1.getNumRequests() > backend2.getNumRequests(),
+                "Backend 1 must process more requests than backend 2");
+        assertTrue(backend2.getNumRequests() > backend3.getNumRequests(),
+                "Backend 2 must process more requests than backend 3");
         scheduler.shutdown();
    }
 

@@ -40,7 +40,7 @@ public class LeastLoaded<Req, Resp> implements RpcService<Req, Resp> {
             outboundRequests.incrementAndGet();
             ListenableFuture<Resp> serverFuture = service.apply(req);
             serverFuture.addListener(
-                    IdempotentRunnable.from(outboundRequests::decrementAndGet),
+                    outboundRequests::decrementAndGet,
                     MoreExecutors.directExecutor());
 
             return serverFuture;

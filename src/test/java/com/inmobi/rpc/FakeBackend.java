@@ -28,11 +28,11 @@ public class FakeBackend implements RpcService<Object, Object> {
 
     @Override
     public ListenableFuture<Object> apply(Object o) {
+        numRequests.incrementAndGet();
         SettableFuture<Object> ret = SettableFuture.create();
         asyncQueue.submit(completionHook -> {
                 executorService.schedule(() -> {
                             ret.set(new Object());
-                            numRequests.incrementAndGet();
                             completionHook.run();
                         },
                         cpuTimeMillis, TimeUnit.MILLISECONDS);
