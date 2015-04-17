@@ -109,7 +109,7 @@ public class PreferredTest {
         int numBackends = 10;
 
         ImmutableList.Builder<RpcService<Object, Object>> immutableListBuilder = ImmutableList.builder();
-        immutableListBuilder.add(new FunctionalRpcService<Object, Object>((req) -> Futures.immediateCancelledFuture(), () -> false));
+        immutableListBuilder.add(new FunctionalRpcService<>((req) -> Futures.immediateCancelledFuture(), () -> false));
         for (int i = 0; i < numBackends - 1; i++) {
             immutableListBuilder.add(RpcTestUtils.immediateSuccess(new Object()));
         }

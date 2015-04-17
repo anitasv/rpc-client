@@ -5,10 +5,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,8 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class LeastLoaded<Req, Resp> implements RpcService<Req, Resp> {
 
-    private final Executor executor;
-
     private final AtomicInteger loopCounter;
 
     private class RpcWrapper {
@@ -41,35 +38,12 @@ public class LeastLoaded<Req, Resp> implements RpcService<Req, Resp> {
 
         public ListenableFuture<Resp> call(final Req req) {
             outboundRequests.incrementAndGet();
-            final ListenableFuture<Resp> serverFuture = service.apply(req);
+            ListenableFuture<Resp> serverFuture = service.apply(req);
+            serverFuture.addListener(
+                    IdempotentRunnable.from(outboundRequests::decrementAndGet),
+                    MoreExecutors.directExecutor());
 
-            final SettableFuture<Resp> clientFuture = SettableFuture.create();
-
-            serverFuture.addListener(IdempotentRunnable.from(() -> {
-                try {
-                    Preconditions.checkState(serverFuture.isDone());
-
-                    if (serverFuture.isCancelled()) {
-                        clientFuture.cancel(false);
-                    } else {
-                        try {
-                            clientFuture.set(serverFuture.get());
-                        } catch (Exception e) {
-                            clientFuture.setException(e);
-                        }
-                    }
-                } finally {
-                    outboundRequests.decrementAndGet();
-                }
-            }), executor);
-
-            clientFuture.addListener(IdempotentRunnable.from(() -> {
-                if (clientFuture.isCancelled()) {
-                    serverFuture.cancel(true);
-                }
-            }), executor);
-
-            return clientFuture;
+            return serverFuture;
         }
 
         public boolean isHealthy() {
@@ -79,12 +53,17 @@ public class LeastLoaded<Req, Resp> implements RpcService<Req, Resp> {
 
     private final List<RpcWrapper> backends;
 
-    public LeastLoaded(List<RpcService<Req, Resp>> backends,
-                       Executor executor) {
+    public LeastLoaded(List<RpcService<Req, Resp>> backends) {
         Preconditions.checkArgument(!backends.isEmpty(), "At least one backend must be present");
         this.backends = ImmutableList.copyOf(Lists.transform(backends, RpcWrapper::new));
-        this.executor = executor;
         this.loopCounter = new AtomicInteger(ThreadLocalRandom.current().nextInt(backends.size()));
+    }
+
+    public LeastLoaded(List<RpcService<Req, Resp>> backends, int startingPoint) {
+        Preconditions.checkArgument(!backends.isEmpty(), "At least one backend must be present");
+        Preconditions.checkElementIndex(startingPoint, backends.size());
+        this.backends = ImmutableList.copyOf(Lists.transform(backends, RpcWrapper::new));
+        this.loopCounter = new AtomicInteger(startingPoint);
     }
 
     @Override

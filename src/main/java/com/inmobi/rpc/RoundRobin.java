@@ -1,9 +1,10 @@
 package com.inmobi.rpc;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -14,11 +15,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class RoundRobin<Req, Resp> implements RpcService<Req, Resp> {
 
-    private final List<RpcService<Req, Resp>> backends;
+    private final ImmutableList<RpcService<Req, Resp>> backends;
 
     private final AtomicInteger rotation;
 
-    public RoundRobin(List<RpcService<Req, Resp>> backends) {
+    public RoundRobin(ImmutableList<RpcService<Req, Resp>> backends,
+                      int startingPoint) {
+        Preconditions.checkArgument(!backends.isEmpty(), "Backends should not be empty.");
+        Preconditions.checkElementIndex(startingPoint, backends.size());;
+        this.backends = backends;
+        this.rotation = new AtomicInteger(startingPoint);
+    }
+
+    public RoundRobin(ImmutableList<RpcService<Req, Resp>> backends) {
+        Preconditions.checkArgument(!backends.isEmpty(), "Backends should not be empty.");
         this.backends = backends;
         this.rotation = new AtomicInteger(ThreadLocalRandom.current().nextInt(backends.size()));
     }
@@ -50,6 +60,7 @@ public class RoundRobin<Req, Resp> implements RpcService<Req, Resp> {
             int pos = (start + i) % size;
             RpcService<Req, Resp> host = backends.get(pos);
             if (host.isHealthy()) {
+                this.rotation.set((pos + 1) % size);
                 return host;
             }
         }

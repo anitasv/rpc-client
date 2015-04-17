@@ -24,8 +24,7 @@ public class LeastLoadedTest {
 
         RpcService<Object, Object> healthy = immediateSuccess(resp);
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy));
 
         assertTrue(leastLoaded.isHealthy());
         assertEquals(leastLoaded.apply(req).get(), resp, "Response must match what is sent by backend");
@@ -40,8 +39,7 @@ public class LeastLoadedTest {
 
         RpcService<Object, Object> healthy = immediateSuccess(resp);
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy));
 
         Semaphore wait = new Semaphore(0);
 
@@ -60,8 +58,7 @@ public class LeastLoadedTest {
 
         RpcService<Object, Object> healthy = immediateFail();
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy));
 
         assertTrue(leastLoaded.isHealthy());
         leastLoaded.apply(req).get();
@@ -74,8 +71,7 @@ public class LeastLoadedTest {
 
         RpcService<Object, Object> healthy = immediateFail();
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy));
 
         Semaphore wait = new Semaphore(0);
 
@@ -95,8 +91,7 @@ public class LeastLoadedTest {
         SettableFuture<Object> serverFuture = SettableFuture.create();
         RpcService<Object, Object> healthy = custom(serverFuture);
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy));
 
         Semaphore wait = new Semaphore(0);
 
@@ -117,8 +112,7 @@ public class LeastLoadedTest {
         SettableFuture<Object> serverFuture = SettableFuture.create();
         RpcService<Object, Object> healthy = custom(serverFuture);
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy));
 
         Semaphore wait = new Semaphore(0);
 
@@ -142,8 +136,7 @@ public class LeastLoadedTest {
         SettableFuture<Object> serverFuture = SettableFuture.create();
         RpcService<Object, Object> healthy = custom(serverFuture);
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy));
 
         Semaphore wait = new Semaphore(0);
 
@@ -164,8 +157,7 @@ public class LeastLoadedTest {
         SettableFuture<Object> serverFuture = SettableFuture.create();
         RpcService<Object, Object> healthy = custom(serverFuture);
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(healthy));
 
         Semaphore wait = new Semaphore(0);
 
@@ -196,8 +188,8 @@ public class LeastLoadedTest {
         RpcService<Object, AtomicInteger> backend3 = immediateSuccess(resp3);
 
         LeastLoaded<Object, AtomicInteger> leastLoaded = new LeastLoaded<>(
-                ImmutableList.of(backend1, backend2, backend3),
-                MoreExecutors.directExecutor());
+                ImmutableList.of(backend1, backend2, backend3)
+        );
 
         assertTrue(leastLoaded.isHealthy());
         assertEquals(leastLoaded.apply(req).get().incrementAndGet(), 1);
@@ -219,8 +211,8 @@ public class LeastLoadedTest {
         FakeBackend backend3 = new FakeBackend(scheduler, delay3);
 
         LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(
-                ImmutableList.<RpcService<Object, Object>>of(backend1, backend2, backend3),
-                MoreExecutors.directExecutor());
+                ImmutableList.<RpcService<Object, Object>>of(backend1, backend2, backend3)
+        );
 
         assertTrue(leastLoaded.isHealthy());
 
@@ -249,6 +241,9 @@ public class LeastLoadedTest {
 
         double achievedRate = numRequests * 1e9 / watch.elapsed(TimeUnit.NANOSECONDS);
         System.err.println("LeastLoadedRR: Throughput (Expected = " + rate + " ) (Actual = " + achievedRate + ")" );
+        System.err.println("Backend (1: " + backend1.getNumRequests() + ") " +
+                "(2: " + backend2.getNumRequests() + ")" +
+                "(3: " + backend3.getNumRequests() + ")");
 
         assertTrue(backend1.getNumRequests() > backend2.getNumRequests(), "Backend 1 must process more requests than backend 2");
         assertTrue(backend2.getNumRequests() > backend3.getNumRequests(), "Backend 2 must process more requests than backend 3");
@@ -260,8 +255,7 @@ public class LeastLoadedTest {
 
         RpcService<Object, Object> backend1 = custom(Futures.immediateFailedFuture(new RpcException("Test")));
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1));
 
         leastLoaded.apply(new Object()).get();
         fail();
@@ -272,8 +266,7 @@ public class LeastLoadedTest {
 
         RpcService<Object, Object> backend1 = custom(Futures.immediateFailedFuture(new RpcException("Test")));
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1));
 
         ListenableFuture<Object> future = leastLoaded.apply(new Object());
         Semaphore wait = new Semaphore(0);
@@ -291,8 +284,7 @@ public class LeastLoadedTest {
         Object resp = new Object();
         RpcService<Object, Object> backend2 = immediateSuccess(resp);
 
-        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1, backend2),
-                MoreExecutors.directExecutor());
+        LeastLoaded<Object, Object> leastLoaded = new LeastLoaded<>(ImmutableList.of(backend1, backend2));
 
         while (true) {
             try {
