@@ -11,8 +11,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class AsyncQueue {
 
-    public static interface AsyncTask {
+    public interface AsyncTask {
 
+        /**
+         * Do your action here. Once done call completionHook.run()
+         *
+         * @param completionHook to indicate when async task is completed.
+         */
         void perform(Runnable completionHook);
     }
 
