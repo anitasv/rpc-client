@@ -1,4 +1,4 @@
-package com.inmobi.adserve;
+package com.inmobi.rpc;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.inmobi.adserve.RpcTestUtils.*;
+import static com.inmobi.rpc.RpcTestUtils.*;
 import static org.testng.Assert.*;
 
 public class LeastLoadedTest {
@@ -251,14 +251,9 @@ public class LeastLoadedTest {
             }, arrivalRates[i], TimeUnit.NANOSECONDS);
         }
         countDownLatch.await();
-        System.err.println("Through put: " + numRequests * 1e9 / watch.elapsed(TimeUnit.NANOSECONDS));
 
-        System.err.println(duration / delay1);
-        System.err.println(duration / delay2);
-        System.err.println(duration / delay3);
-        System.err.println(backend1.getNumRequests());
-        System.err.println(backend2.getNumRequests());
-        System.err.println(backend3.getNumRequests());
+        double achievedRate = numRequests * 1e9 / watch.elapsed(TimeUnit.NANOSECONDS);
+        System.err.println("LeastLoadedRR: Throughput (Expected = " + rate + " ) (Actual = " + achievedRate + ")" );
 
         assertTrue(backend1.getNumRequests() > backend2.getNumRequests(), "Backend 1 must process more requests than backend 2");
         assertTrue(backend2.getNumRequests() > backend3.getNumRequests(), "Backend 2 must process more requests than backend 3");

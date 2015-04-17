@@ -1,4 +1,4 @@
-package com.inmobi.adserve;
+package com.inmobi.rpc;
 
 
 import com.google.common.util.concurrent.ListenableFuture;

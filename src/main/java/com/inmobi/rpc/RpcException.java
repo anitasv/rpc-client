@@ -1,4 +1,4 @@
-package com.inmobi.adserve;
+package com.inmobi.rpc;
 
 public class RpcException extends Exception {
     public RpcException(String s) {
