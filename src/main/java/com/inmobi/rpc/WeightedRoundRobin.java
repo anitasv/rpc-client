@@ -63,7 +63,7 @@ public class WeightedRoundRobin <Req, Resp> implements RpcService<Req, Resp> {
      */
     public WeightedRoundRobin(ImmutableList<RpcService<Req, Resp>> backends,
                               ImmutableList<Integer> weights) {
-        Preconditions.checkArgument(backends.isEmpty(), "At least one backend must be there");
+        Preconditions.checkArgument(!backends.isEmpty(), "At least one backend must be there");
         Preconditions.checkArgument(weights.size() == backends.size(), "Weights must match backend count");
 
         ImmutableList.Builder<RpcWrapper> builder = ImmutableList.builder();
@@ -78,6 +78,11 @@ public class WeightedRoundRobin <Req, Resp> implements RpcService<Req, Resp> {
 
     @Override
     public boolean isHealthy() {
+        for (RpcWrapper wrapper : backends) {
+            if (wrapper.isHealthy()) {
+                return true;
+            }
+        }
         return false;
     }
 

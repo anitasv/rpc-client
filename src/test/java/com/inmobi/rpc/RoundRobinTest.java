@@ -247,9 +247,8 @@ public class RoundRobinTest {
         }
         countDownLatch.await();
 
-        double expectedRate = 3.0 * duration / Math.max(delay1, Math.max(delay2, delay3));
         double achievedRate = numRequests * 1e9 / watch.elapsed(TimeUnit.NANOSECONDS);
-        System.err.println("RoundRobinRR: Throughput (Expected = " + expectedRate +")" +
+        System.err.println("RoundRobin: Throughput (Maximum = " + rate +")" +
                 " (Actual = " + achievedRate + ")" );
         System.err.println("Backend (1: " + backend1.getNumRequests() + ")" +
                 " (2: " + backend2.getNumRequests() + ")" +

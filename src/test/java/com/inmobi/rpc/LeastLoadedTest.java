@@ -240,7 +240,7 @@ public class LeastLoadedTest {
         countDownLatch.await();
 
         double achievedRate = numRequests * 1e9 / watch.elapsed(TimeUnit.NANOSECONDS);
-        System.err.println("LeastLoadedRR: Throughput (Expected = " + rate + ") (Actual = " + achievedRate + ")" );
+        System.err.println("LeastLoadedRR: Throughput (Maximum = " + rate + ") (Actual = " + achievedRate + ")" );
         System.err.println("Backend (1: " + backend1.getNumRequests() + ")" +
                 " (2: " + backend2.getNumRequests() + ")" +
                 " (3: " + backend3.getNumRequests() + ")");
