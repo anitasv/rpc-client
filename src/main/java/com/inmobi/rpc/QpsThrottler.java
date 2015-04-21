@@ -1,6 +1,5 @@
 package com.inmobi.rpc;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
@@ -10,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class QpsThrottler<Req, Resp> implements RpcService<Req, Resp> {
 
-    private final ImmutableList<AtomicInteger> buckets;
+    private final AtomicInteger counter;
 
     private final RpcService<Req, Resp> backend;
 
@@ -28,7 +27,7 @@ public class QpsThrottler<Req, Resp> implements RpcService<Req, Resp> {
                         TimeUnit unit,
                         Clock clock) {
         this.backend = backend;
-        this.buckets = ImmutableList.of(new AtomicInteger(0), new AtomicInteger(0), new AtomicInteger(0));
+        this.counter = new AtomicInteger(0);
         this.clock = clock;
         this.durationNanos = unit.toNanos(duration);
         this.maxQueries = maxQueries;
@@ -54,15 +53,13 @@ public class QpsThrottler<Req, Resp> implements RpcService<Req, Resp> {
 
     private AtomicInteger slot() {
         long instant = clock.instant().getNano();
-        int bucket = (int) ((instant / durationNanos) % 3);
+        int bucket = (int) ((instant / durationNanos));
 
         int prevSlotId = prevSlot.get();
-        if (prevSlotId != bucket && prevSlot.compareAndSet(prevSlotId, bucket)) {
-            for (AtomicInteger slot : buckets) {
-                slot.set(0);
-            }
+        if (prevSlotId < bucket) {
+            counter.set(0);
         }
-        return this.buckets.get(bucket);
+        return this.counter;
     }
 
     private boolean hasPermit() {
