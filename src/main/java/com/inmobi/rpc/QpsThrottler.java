@@ -56,7 +56,8 @@ public class QpsThrottler<Req, Resp> implements RpcService<Req, Resp> {
         long instant = clock.instant().getNano();
         int bucket = (int) ((instant / durationNanos) % 3);
 
-        if (prevSlot.compareAndSet(prevSlot.get(), bucket)) {
+        int prevSlotId = prevSlot.get();
+        if (prevSlotId != bucket && prevSlot.compareAndSet(prevSlotId, bucket)) {
             for (AtomicInteger slot : buckets) {
                 slot.set(0);
             }
