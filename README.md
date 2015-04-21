@@ -38,8 +38,16 @@ much advantage to dynamically update them.
 Least loaded is especially useful if you have multiple backends with different latency characteristics,
 but similar capacity. For example if you have three backends with 10ms, 20ms, and 30ms latency for
 each. Then you would expect first server to handle around 100 qps, second 50 qps, and third 33 qps. 
-Giving an overall 183 qps. One of the test in LeastLoadedTest checks precisely this, but gets an 
-overall 165 qps, with 94-53-36 split instead of the perfect 100-50-33 on a poisson distributed input.
+Giving a maximum of 183 qps. You could also use a WeightedRoundRobin to achieve this, but benchmark 
+shows Least loaded to be more efficient on a poisson process. 
+
+
+Strategy             | QPS
+---------------------|--------
+Optimal              | 183
+Least-Loaded         | 153
+Weighted-Round-Robin | 147
+Round-Robin          | 100
 
 
 But in reality individual capacity of each server might differ because of the number of CPUs in 
